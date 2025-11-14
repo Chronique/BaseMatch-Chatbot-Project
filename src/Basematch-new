@@ -71,6 +71,8 @@ const DatingSwipeScreen = ({ profile, handleSwipe, handleUpgrade, userStatus, sw
         if (!isPremium && swipesRemaining <= 0) {
             setMessage('Batas harian Anda telah habis!');
             setTimeout(() => setMessage(''), 1500);
+            // Panggil handleUpgrade untuk memicu modal
+            handleUpgrade('limit_reached'); 
             return;
         }
 
@@ -85,7 +87,7 @@ const DatingSwipeScreen = ({ profile, handleSwipe, handleUpgrade, userStatus, sw
             y: 0, 
             rotate: direction === 'LIKE' ? 15 : -15 
         });
-    }, [isPremium, swipesRemaining, profile, handleSwipe]);
+    }, [isPremium, swipesRemaining, profile, handleSwipe, handleUpgrade]);
 
 
     // --- SWIPE LOGIC (Menggunakan logika swipe kanan/kiri) ---
@@ -166,7 +168,7 @@ const DatingSwipeScreen = ({ profile, handleSwipe, handleUpgrade, userStatus, sw
             <div className="flex flex-col items-center justify-center h-[50vh] text-center p-6 bg-white rounded-lg shadow-lg">
                 <RefreshCw className="w-10 h-10 text-emerald-400 mb-4 animate-spin" />
                 <h2 className="text-xl font-semibold mb-2 text-gray-800">Semua Profil Sudah Dilihat!</h2>
-                <p className="text-gray-500">Coba lagi besok atau *Mint NFT* Premium untuk fitur khusus.</p>
+                <p className="text-gray-500">Coba lagi besok atau *Bayar Token* Premium untuk fitur khusus.</p>
             </div>
         );
     }
@@ -242,10 +244,10 @@ const DatingSwipeScreen = ({ profile, handleSwipe, handleUpgrade, userStatus, sw
             {/* Mint NFT Link */}
             {!isPremium && (
                 <button 
-                    onClick={handleUpgrade}
+                    onClick={() => handleUpgrade('limit_reached')} // Langsung arahkan ke modal limit_reached
                     className="text-sm text-blue-600 hover:text-blue-800 font-semibold mt-4 underline"
                 >
-                    Dapatkan UNLIMITED SWIPE dengan Mint NFT Base?
+                    Dapatkan UNLIMITED SWIPE dengan Bayar Token Base?
                 </button>
             )}
 
@@ -331,9 +333,9 @@ const ChatbotScreen = () => {
 }
 
 /**
- * Komponen Modal Web3/Mint NFT
+ * Komponen Modal Web3/Pembayaran Token
  */
-const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
+const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => { // Nama fungsi tetap onMintNFT agar tidak merombak fungsi pemanggil
     if (!isOpen) return null;
 
     const [walletAddress, setWalletAddress] = useState(null);
@@ -345,7 +347,7 @@ const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
         onConnectWallet(mockAddress);
     };
 
-    const handleMint = () => {
+    const handlePayment = () => { // Mengganti nama fungsi lokal
         onMintNFT(walletAddress);
     };
 
@@ -354,22 +356,22 @@ const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
             title: "Batas Swipe Tercapai!",
             body: (
                 <>
-                    Anda telah mencapai batas harian **{DAILY_SWIPE_LIMIT} *swipe***. Tingkatkan ke Premium dengan Minting NFT Base untuk mendapatkan *swipe* tak terbatas.
+                    Anda telah mencapai batas harian **{DAILY_SWIPE_LIMIT} *swipe***. Tingkatkan ke Premium dengan Pembayaran Token Base untuk mendapatkan *swipe* tak terbatas.
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-gray-800">
-                        **BaseMatch Premium NFT** (Simulasi): <br/>
-                        Mint sekali di Jaringan Base: **0.001 ETH (Lanjut)**
+                        **BaseMatch Premium** (Simulasi): <br/>
+                        Bayar sekali di Jaringan Base: **0.1 USDC (atau setara ETH)**
                     </div>
                 </>
             ),
             buttons: [
                 { text: "Tutup", action: onClose, color: "bg-gray-300 text-gray-800" },
-                { text: "Lanjut ke Minting", action: () => onConnectWallet(null), color: "bg-emerald-500 text-white" }
+                { text: "Lanjut ke Pembayaran", action: () => onConnectWallet(null), color: "bg-emerald-500 text-white" }
             ],
         },
         'connect_wallet': {
             title: "Hubungkan Wallet Web3",
             body: (
-                <p>Anda perlu menghubungkan dompet Ethereum Anda (diutamakan di jaringan Base) untuk Mint NFT Premium.</p>
+                <p>Anda perlu menghubungkan dompet Ethereum Anda (diutamakan di jaringan Base) untuk Beli Premium.</p>
             ),
             buttons: [
                 { text: "Tutup", action: onClose, color: "bg-gray-300 text-gray-800" },
@@ -377,19 +379,21 @@ const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
             ],
         },
         'mint_confirm': {
-            title: "Konfirmasi Mint NFT di Base",
+            title: "Konfirmasi Pembayaran di Base",
             body: (
-                <p>
-                    Dompet Anda **({walletAddress})** siap Mint NFT Premium di Jaringan Base. Ini akan mengaktifkan *Unlimited Swipe*.
+                <>
+                    <p>
+                        Dompet Anda **({walletAddress})** siap Bayar Token Premium di Jaringan Base. Ini akan mengaktifkan *Unlimited Swipe*.
+                    </p>
                     <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-gray-800 font-semibold">
-                        Biaya Mint (Simulasi): <br/>
-                        0.001 ETH + Gas Fee
+                        Biaya Pembayaran (Simulasi): <br/>
+                        0.1 USDC atau setara ETH + Gas Fee
                     </div>
-                </p>
+                </>
             ),
             buttons: [
                 { text: "Kembali", action: () => onConnectWallet(null), color: "bg-gray-300 text-gray-800" },
-                { text: "Mint NFT Sekarang!", action: handleMint, color: "bg-emerald-500 text-white font-bold" }
+                { text: "Bayar Token Sekarang!", action: handlePayment, color: "bg-emerald-500 text-white font-bold" }
             ],
         },
         'mint_processing': {
@@ -397,10 +401,22 @@ const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
             body: (
                 <div className="flex flex-col items-center">
                     <RefreshCw className="w-8 h-8 text-blue-500 mb-4 animate-spin" />
-                    <p>Mohon tunggu. Anda akan menerima Premium NFT Base sebentar lagi.</p>
+                    <p>Mohon tunggu. Pembayaran Token Base Anda sedang diverifikasi.</p>
                 </div>
             ),
             buttons: [], // Tidak ada tombol saat loading
+        },
+        // Step baru untuk konfirmasi koneksi
+        'wallet_connected': {
+            title: "Wallet Terhubung!",
+            body: (
+                <p>
+                    Dompet **{walletAddress}** berhasil terhubung (Simulasi). Lanjutkan untuk Bayar Premium.
+                </p>
+            ),
+            buttons: [
+                { text: "Lanjut Bayar", action: handlePayment, color: "bg-emerald-500 text-white font-bold" }
+            ],
         }
     };
 
@@ -432,9 +448,10 @@ const Web3Modal = ({ isOpen, step, onClose, onConnectWallet, onMintNFT }) => {
 // --- MAIN APP COMPONENT ---
 
 const App = () => {
-    const [userId, setUserId] = useState('06658123647126429491'); // ID pengguna dari video
+    // ID Farcaster simulasi
+    const [userId, setUserId] = useState('42069'); 
     const [userStatus, setUserStatus] = useState({
-        swipesToday: 30, // Status awal dari video
+        swipesToday: 49, // Dimulai dari 49 agar cepat mencapai limit
         isPremium: false,
         lastResetDate: getTodayDateString(),
         matches: [],
@@ -450,8 +467,6 @@ const App = () => {
     // Simulasikan Auth/Firebase Initialization
     useEffect(() => {
         // Asumsi autentikasi sudah selesai dan userId sudah ada
-        // (Di lingkungan real, ini akan menggunakan onAuthStateChanged seperti di kode sebelumnya)
-        // setUserId('06658123647126429491'); // Set ID hardcoded untuk replika video
         console.log("App Initialized. User ID:", userId);
     }, [userId]);
 
@@ -463,7 +478,7 @@ const App = () => {
         const docRef = getUserDocRef(userId);
 
         const initialStatus = {
-            swipesToday: 30, // Mulai dari 30 seperti di video
+            swipesToday: 49, // Mulai dari 49 seperti di video
             isPremium: false,
             lastResetDate: getTodayDateString(),
             matches: [], 
@@ -499,11 +514,20 @@ const App = () => {
     const swipesRemaining = swipeLimit - (userStatus.swipesToday || 0);
     
     // --- HANDLERS ---
+    
+    // Fungsi yang diperbarui untuk menangani alur modal
+    const handleUpgrade = useCallback((step) => {
+        if (!userStatus.isPremium) {
+            setIsModalOpen(true);
+            setModalStep(step || 'limit_reached');
+        }
+    }, [userStatus.isPremium]);
+
 
     const handleSwipe = useCallback(async (direction) => {
         if (!userStatus.isPremium && swipesRemaining <= 0) {
-             setIsModalOpen(true);
-             setModalStep('limit_reached');
+             // Panggil handleUpgrade untuk memicu modal
+             handleUpgrade('limit_reached');
              return;
         }
 
@@ -543,23 +567,16 @@ const App = () => {
         } catch (error) {
             console.error("Error during swipe operation:", error);
         }
-    }, [currentProfile, userId, userStatus.isPremium, userStatus.swipesToday, swipesRemaining]);
+    }, [currentProfile, userId, userStatus.isPremium, userStatus.swipesToday, swipesRemaining, handleUpgrade]);
 
-    const handleUpgrade = () => {
-        if (!userStatus.isPremium) {
-            setIsModalOpen(true);
-            setModalStep('limit_reached');
-        }
-    };
-
-    // --- MINT NFT PROCESS HANDLERS ---
+    // --- PEMBAYARAN TOKEN PROSES HANDLERS ---
     const handleConnectWallet = (address) => {
         if (address) {
-            // Setelah wallet terhubung
+            // Wallet terhubung
             setModalStep('mint_confirm');
             setUserStatus(prev => ({ ...prev, walletAddress: address }));
         } else {
-            // Kembali ke step koneksi wallet
+            // Mengarahkan ke step koneksi wallet dari 'limit_reached'
             setModalStep('connect_wallet');
         }
     };
@@ -568,19 +585,19 @@ const App = () => {
         setIsModalOpen(true);
         setModalStep('mint_processing');
 
-        // Simulasi Transaksi Base L2
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Tunggu 3 detik
+        // Simulasi Transaksi Base L2 (1.5 detik)
+        await new Promise(resolve => setTimeout(resolve, 1500)); 
 
         // Update status di Firebase (atau lokal) menjadi Premium
         const docRef = getUserDocRef(userId);
         const premiumUpdates = {
-            'status.isPremium': true,
-            'status.swipesToday': 0, 
-            'status.walletAddress': walletAddress,
+            isPremium: true,
+            swipesToday: 0, 
+            walletAddress: walletAddress,
         };
 
         if (docRef) {
-             await updateDoc(docRef, premiumUpdates).catch(e => console.error("Failed to update status to Premium:", e));
+             await updateDoc(docRef, { 'status': premiumUpdates }).catch(e => console.error("Failed to update status to Premium:", e));
         }
         
         // Update status lokal
@@ -591,7 +608,9 @@ const App = () => {
         
         // Tutup modal dan tampilkan pesan sukses
         setIsModalOpen(false);
-        alert("Selamat! Anda SEKARANG pengguna Premium dengan UNLIMITED SWIPE!");
+        // Ganti alert dengan pesan di UI yang lebih baik jika ini adalah aplikasi nyata.
+        // Karena ini hanya simulasi, kita gunakan window.alert
+        window.alert("Selamat! Pembayaran berhasil. Anda SEKARANG pengguna Premium dengan UNLIMITED SWIPE!");
     };
 
 
@@ -602,7 +621,7 @@ const App = () => {
             <div className="flex justify-between w-full mb-3">
                 <div className="flex flex-col text-sm text-gray-500">
                     <h1 className="text-xl font-bold text-gray-800">BaseMatch</h1>
-                    <span className="text-xs">ID Pengguna: {userId}</span>
+                    <span className="text-xs">ID Pengguna Farcaster: {userId}</span>
                 </div>
                 <div className="flex flex-col items-end text-sm">
                     <button 
@@ -613,7 +632,7 @@ const App = () => {
                     </button>
                     <button 
                         className={`text-xs p-1 rounded ${userStatus.walletAddress ? 'text-emerald-600' : 'text-gray-500'}`}
-                        onClick={handleUpgrade} // Gunakan upgrade untuk Wallet
+                        onClick={() => handleUpgrade('connect_wallet')} // Panggil handleUpgrade ke connect_wallet
                     >
                         Wallet Base {userStatus.walletAddress || 'Hubungkan Wallet'}
                     </button>
@@ -672,14 +691,3 @@ const App = () => {
 };
 
 export default App;
-```eof
-
-Anda dapat menjalankan kode **`src/BaseMatchApp.jsx`** di atas. Ini memiliki fitur-fitur utama dari video:
-
-1.  **Tampilan Mirip Video**: UI dengan header, dua tab (*Swiping* dan *Chatbot*), dan tampilan kartu yang sederhana.
-2.  **Logika Swipe**: Geser kartu **ke kanan** untuk **LIKE** dan **ke kiri** untuk **DISLIKE** (juga bisa menggunakan tombol).
-3.  **Batas Harian**: Status `Sisa Swipe Hari Ini: 30 / 50` akan berkurang setiap kali *swipe*.
-4.  **Upgrade Premium**: Ketika batas tercapai, modal **BaseMatch Premium NFT** akan muncul, mensimulasikan proses **Hubungkan Wallet** dan **Mint NFT di Base**.
-5.  **Status Premium**: Setelah simulasi Mint berhasil, status akan berubah menjadi **BaseMatch Premium** dengan **Swipe Tak Terbatas**.
-
-Silakan coba *swipe* beberapa kali dan coba fitur *upgrade* Premium-nya!
