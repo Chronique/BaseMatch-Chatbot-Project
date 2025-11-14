@@ -1,0 +1,127 @@
+import React, { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Heart, X, Wallet, Link as LinkIcon } from "lucide-react";
+
+export default function Preview() {
+  const popSound = useRef(null);
+
+  const [cards, setCards] = useState([
+    {
+      id: 1,
+      name: "Ayu",
+      age: 24,
+      img: "https://images.generated.photos/NzQ1NDg.jpg",
+      bio: "Loves coffee and philosophical discussions. Looking for a genuine connection.",
+    },
+    {
+      id: 2,
+      name: "Nina",
+      age: 23,
+      img: "https://images.generated.photos/1234.jpg",
+      bio: "Traveler. Book lover. Good vibes only.",
+    },
+    {
+      id: 3,
+      name: "Sarah",
+      age: 25,
+      img: "https://images.generated.photos/5678.jpg",
+      bio: "Music enthusiast and nature explorer.",
+    },
+  ]);
+
+  const handleSwipe = (direction) => {
+    if (popSound.current) popSound.current.play();
+
+    setCards((prev) => prev.slice(1));
+
+    if (direction === "right") console.log("LIKE → right");
+    if (direction === "left") console.log("DISLIKE → left");
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 flex flex-col items-center gap-6">
+      <audio ref={popSound} src="https://cdn.pixabay.com/audio/2022/03/15/audio_b3f74675b3.mp3" preload="auto" />
+
+      <header className="w-full max-w-md flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-800">BaseMatch</h1>
+        <div className="flex gap-3">
+          <Button className="rounded-2xl shadow bg-purple-500 text-white flex gap-1">
+            <LinkIcon size={18} /> Connect
+          </Button>
+          <Button className="rounded-2xl shadow bg-emerald-500 text-white flex gap-1">
+            <Wallet size={18} /> Wallet
+          </Button>
+        </div>
+      </header>
+
+      <nav className="flex gap-3 mt-2">
+        <Button variant="default" className="px-6 py-2 rounded-xl shadow">Swipe</Button>
+        <Button variant="secondary" className="px-6 py-2 rounded-xl">AI Chatbot</Button>
+      </nav>
+
+      <h2 className="mt-6 text-2xl font-semibold text-slate-700">BaseMatch Swipe</h2>
+
+      <div className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl text-sm font-medium shadow">
+        Remaining Swipes Today: <strong>50 / 50</strong>
+      </div>
+
+      <div className="relative w-full max-w-md h-[430px] mt-4">
+        <AnimatePresence>
+          {cards.map((card, index) => {
+            const isTop = index === 0;
+
+            return (
+              <motion.div
+                key={card.id}
+                drag={isTop ? "x" : false}
+                dragElastic={0.5}
+                onDragEnd={(e, info) => {
+                  if (info.offset.x > 120) handleSwipe("right");
+                  else if (info.offset.x < -120) handleSwipe("left");
+                }}
+                initial={{ scale: 0.9 + index * 0.05, y: index * 10, opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{
+                  x: isTop ? (Math.random() > 0.5 ? 400 : -400) : 0,
+                  opacity: 0,
+                  rotate: isTop ? (Math.random() > 0.5 ? 20 : -20) : 0,
+                  transition: { duration: 0.35 },
+                }}
+                className="absolute w-full h-full rounded-3xl shadow-xl overflow-hidden bg-white"
+              >
+                <img
+                  src={card.img}
+                  alt={card.name}
+                  className="w-full h-64 object-cover"
+                />
+                <div className="p-5">
+                  <h3 className="text-xl font-semibold text-slate-800">{card.name}, {card.age}</h3>
+                  <p className="text-slate-600 mt-1 text-sm">{card.bio}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      <div className="flex gap-6 mt-4">
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          className="p-5 bg-red-500 text-white rounded-full shadow-xl"
+          onClick={() => handleSwipe("left")}
+        >
+          <X size={32} />
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          className="p-5 bg-emerald-500 text-white rounded-full shadow-xl"
+          onClick={() => handleSwipe("right")}
+        >
+          <Heart size={32} />
+        </motion.button>
+      </div>
+    </div>
+  );
+}
