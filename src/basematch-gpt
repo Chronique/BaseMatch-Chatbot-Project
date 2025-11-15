@@ -1,0 +1,205 @@
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+// Dummy profiles — replace with real data as needed
+const PROFILES = [
+  { id: 1, name: "Ayu", gender: "female", age: 22, bio: "Suka kopi dan musik indie" },
+  { id: 2, name: "Dinda", gender: "female", age: 24, bio: "Anak rumahan" },
+  { id: 3, name: "Rama", gender: "male", age: 23, bio: "Suka nge-gym" },
+  { id: 4, name: "Bima", gender: "male", age: 25, bio: "Travel addict" }
+];
+
+function ChatWindow({ user, onClose }) {
+  const [messages, setMessages] = React.useState([
+    { from: "system", text: `You matched with ${user.name}! Start chatting.` }
+  ]);
+  const [input, setInput] = React.useState("");
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    setMessages((prev) => [...prev, { from: "you", text: input }]);
+    setInput("");
+  };
+
+  return (
+    <div className="mt-4 p-4 bg-white rounded-lg shadow-md w-full">
+      <h3 className="font-bold mb-2">Chat with {user.name}</h3>
+      <div className="h-40 overflow-y-auto border rounded p-2 mb-3 text-sm">
+        {messages.map((m, i) => (
+          <div key={i} className={m.from === "you" ? "text-right" : "text-left"}>
+            <p className={m.from === "you" ? "text-blue-600" : "text-gray-700"}>{m.text}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          className="flex-1 border rounded p-2 text-sm"
+          placeholder="Type a message"
+        />
+        <Button onClick={sendMessage}>Send</Button>
+        <Button variant="ghost" onClick={onClose}>Close</Button>
+      </div>
+    </div>
+  );
+}
+
+export default function BaseMatchGender() {
+  // user's own gender (chooses once). When null we ask selection.
+  const [userGender, setUserGender] = useState(null); // 'male' | 'female' | null
+  const [index, setIndex] = useState(0); // index into filtered list
+  const [matches, setMatches] = useState([]);
+  const [matchedUser, setMatchedUser] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false); // shows chat invite when set
+
+  // animation / swipe state
+  const [swipeDirection, setSwipeDirection] = useState(null); // 'left' | 'right' | null
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // sound
+  const popRef = useRef(null);
+  useEffect(() => {
+    if (typeof Audio !== "undefined") {
+      try {
+        popRef.current = new Audio(
+          "https://cdn.pixabay.com/download/audio/2022/03/15/audio_7f3fa9e02a.mp3?filename=pop-94319.mp3"
+        );
+      } catch (e) {
+        popRef.current = null;
+      }
+    }
+    return () => {
+      popRef.current = null;
+    };
+  }, []);
+
+  // target gender: show opposite gender only
+  const targetGender = userGender === "male" ? "female" : userGender === "female" ? "male" : null;
+
+  const filteredProfiles = targetGender ? PROFILES.filter((p) => p.gender === targetGender) : [];
+  const currentProfile = filteredProfiles[index] || null;
+
+  // advance index and reset animation flags
+  const advanceIndex = useCallback(() => {
+    setIndex((prev) => prev + 1);
+    setIsAnimating(false);
+    setSwipeDirection(null);
+  }, []);
+
+  const handleLike = useCallback(() => {
+    if (!currentProfile) return;
+    try {
+      popRef.current?.play();
+    } catch (e) {
+      // ignore
+    }
+
+    // simulate immediate match for demo
+    setMatches((prev) => [...prev, currentProfile.id]);
+    setMatchedUser(currentProfile);
+    setChatOpen(true);
+
+    setSwipeDirection("right");
+    setIsAnimating(true);
+
+    setTimeout(() => advanceIndex(), 450);
+  }, [currentProfile, advanceIndex]);
+
+  const handleDislike = useCallback(() => {
+    if (!currentProfile) return;
+    try { popRef.current?.play(); } catch (e) {}
+    setSwipeDirection("left");
+    setIsAnimating(true);
+    setTimeout(() => advanceIndex(), 450);
+  }, [currentProfile, advanceIndex]);
+
+  // framer-motion drag end handler
+  const handleDragEnd = (event, info) => {
+    const offsetX = info?.offset?.x ?? 0;
+    if (offsetX > 120) handleLike();
+    else if (offsetX < -120) handleDislike();
+  };
+
+  const noMoreProfiles = targetGender && filteredProfiles.length === 0;
+
+  return (
+    <div className="w-full min-h-screen flex flex-col items-center p-6 gap-6">
+      <h1 className="text-3xl font-bold">BaseMatch — Gender Filter Preview</h1>
+
+      {/* Gender selection — simple, no extra buttons once chosen */}
+      {!userGender ? (
+        <div className="flex flex-col items-center gap-4 p-4">
+          <h2 className="text-xl font-semibold">What's your gender?</h2>
+          <div className="flex gap-4 w-full max-w-sm">
+            <Button className="flex-1" onClick={() => { setUserGender("male"); setIndex(0); }}>I am Male</Button>
+            <Button className="flex-1" onClick={() => { setUserGender("female"); setIndex(0); }}>I am Female</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full max-w-sm">
+          <p className="text-center mb-3 text-gray-600">Showing <span className="font-bold">{targetGender}</span> profiles</p>
+
+          {noMoreProfiles ? (
+            <div className="p-6 bg-white rounded-xl shadow-md text-center text-gray-600">No {targetGender} profiles available.</div>
+          ) : (
+            <>
+              {/* Card area */}
+              <div className="relative h-[460px]">
+                {currentProfile && (
+                  <motion.div
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={handleDragEnd}
+                    whileDrag={{ scale: 1.03 }}
+                    key={currentProfile.id}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={
+                      isAnimating
+                        ? swipeDirection === "right"
+                          ? { x: 900, opacity: 0, rotate: 12 }
+                          : { x: -900, opacity: 0, rotate: -12 }
+                        : { x: 0, opacity: 1, scale: 1 }
+                    }
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute w-full touch-none"
+                    whileTap={{ scale: 0.99 }}
+                  >
+                    <Card className="shadow-2xl p-4 rounded-2xl">
+                      <CardContent className="flex flex-col items-center gap-3">
+                        <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-700">{currentProfile.name[0]}</div>
+                        <h2 className="text-2xl font-bold">{currentProfile.name}</h2>
+                        <p className="text-gray-600">Age: {currentProfile.age}</p>
+                        <p className="text-gray-700 italic text-center">"{currentProfile.bio}"</p>
+
+                        <div className="flex gap-3 mt-4">
+                          <Button variant="destructive" onClick={() => { if (!isAnimating) handleDislike(); }}>❌ Dislike</Button>
+                          <Button onClick={() => { if (!isAnimating) handleLike(); }}>❤️ Like</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Matched prompt: Chat appears only when matched (simulated) */}
+              {matchedUser && chatOpen && (
+                <>
+                  <div className="mt-4 p-4 bg-white rounded-lg shadow-md text-center">
+                    <p className="font-semibold">You matched with {matchedUser.name} 🎉</p>
+                    <p className="text-sm text-gray-600">Chat appears because a match occurred (simulated).</p>
+                  </div>
+
+                  {/* Inline chat window — always show automatically after match */}
+                  <ChatWindow user={matchedUser} onClose={() => { setChatOpen(false); }} />
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
